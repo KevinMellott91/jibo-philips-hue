@@ -1,0 +1,12 @@
+TopRule = $* (
+    $TurnOn {action = 'on'} |
+    $TurnOff {action = 'off'} |
+    $Dim {action = 'dim'} |
+    $Connect {action = 'connect'}
+) $*;
+
+Change = (turn | switch | flip);
+TurnOn = $Change $* on;
+TurnOff = $Change $* off;
+Dim = (dim | ($Change up) | ($Change down));
+Connect = (connect | try | retry);
