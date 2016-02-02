@@ -6,7 +6,7 @@ TopRule = $* (
 ) $*;
 
 Change = (turn | switch | flip);
-TurnOn = $Change $* on;
+TurnOn = $Change $* (on | up);
 TurnOff = $Change $* off;
-Dim = (dim | ($Change up) | ($Change down));
+Dim = (dim | ($Change down));
 Connect = (connect | try | retry);

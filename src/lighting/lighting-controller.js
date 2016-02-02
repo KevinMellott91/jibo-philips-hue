@@ -1,4 +1,7 @@
-import HueApi from 'node-hue-api';
+import Hue from 'node-hue-api';
+import _ from 'lodash';
+import fs from 'fs';
+import nconf from 'nconf';
 
 /**
  * Main class that allows the program to interact with the Philips Hue API, which
@@ -17,7 +20,41 @@ class LightingController {
       _self.connectionInProgress = false;
       _self.connectionRetryAttempts = 0;
       _self.emitter = emitter;
+
+      // Attempt to load the Hue bridge name.
+      nconf.use('file', { file: 'config.json' });
+      _self.hueBridgeUsername = nconf.get('hue:bridgeUsername');
     }
+  }
+
+  /**
+   * Retrieves the username that was generated when the application paired with
+   * the Hue bridge for the first time.
+   * @return {string} Username that should be used when connecting to the Hue bridge.
+   */
+  getBridgeUsername() {
+    var _self = this;
+    return _self.hueBridgeUsername;
+  }
+
+  /**
+   * Sets the username that should be used when communicating with the Hue bridge.
+   * This value will be stored, so that the application only needs to be registered once.
+   * @param {string} username Username that was generated when initially connecting to the Hue bridge.
+   */
+  setBridgeUsername(username) {
+    var _self = this;
+
+    // Update the values stored in the config file, so that this is remembered next time around.
+    nconf.use('file', { file: 'config.json' });
+    nconf.set('hue:bridgeUsername', username);
+    nconf.save(function (err) {
+      fs.readFile('config.json', function (err, data) {
+        console.dir(JSON.parse(data.toString()))
+      });
+    });
+
+    _self.hueBridgeUsername = username;
   }
 
   /**
@@ -130,7 +167,7 @@ class LightingController {
     var _self = this;
     console.log('setting up fake bridge connection.');
     _self.connectionInProgress = true;
-    _self.authenticatedApi = HueApi.api('192.168.1.8', 'newdeveloper');
+    _self.authenticatedApi = Hue.api('192.168.1.8', 'newdeveloper');
     _self.emitter.emit('bridgeConnected');
   }
 
@@ -143,7 +180,7 @@ class LightingController {
 
     // Detect the Hue bridges within range.
     console.log('setting up actual bridge connection.');
-    HueApi.nupnpSearch()
+    Hue.nupnpSearch()
       .then(function(bridges){
         // Example response:
         // Hue Bridges Found: [{"id":"001788fffe096103","ipaddress":"192.168.2.129","name":"Philips Hue","mac":"00:00:00:00:00"}]
@@ -158,31 +195,72 @@ class LightingController {
         var bridge = _.head(bridges);
 
         // Check to see if our application is already registered with this bridge.
-        HueApi.registerUser(bridge.ipaddress, 'jibo-philips-hue')
-          .then(function(username){
-            // Example response:
-            // Existing device user found: 51780342fd7746f2fb4e65c30b91d7
-            console.log('Existing device user found: %s', username);
+        if(_self.getBridgeUsername()) {
+          _self.authenticatedApi = new Hue.HueApi(bridge.ipaddress, _self.getBridgeUsername());
+          _self.validateBridgeConnection();
+        }
+        else {
+          // Otherwise, attempt to register the application.
+          _self.registerApplication(bridge.ipaddress);
+        }
+      })
+      .fail(function(error){
+        // Could not communicate with the bridge.
+        console.error(error);
+        _self.emitter.emit('errorNoBridge');
+      })
+      .done();
+  }
 
-            // Store the authenticated API.
-            _self.authenticatedApi = HueApi.api(bridge.ipaddress, username);
-            _self.emitter.emit('bridgeConnected');
-          })
-          .fail(function(error){
-            // User is not registered with the device.
-            // TODO: Prompt the user to press and hold the Hue bridge button.
-            console.error(error);
-            _self.emitter.emit('errorNotRegistered');
-          })
-          .done();
-        })
-        .fail(function(error){
-          // Could not communicate with the bridge.
-          // TODO: Prompt the user to connect/turn on the bridge.
-          console.error(error);
-          _self.emitter.emit('errorNoBridge');
-        })
-        .done();
+  /**
+   * Connects to the Hue bridge using the established instance, to retrieve
+   * basic configuration information. If the connection succeeds, then the
+   * "bridgeConnected" event will be emitted.
+   */
+  validateBridgeConnection() {
+    var _self = this;
+
+    // Validate the connection by accessing basic information.
+    _self.authenticatedApi.fullState()
+      .then(function(data){
+        _self.emitter.emit('bridgeConnected');
+      })
+      .fail(function(error){
+        // Clear out the stored username.
+        console.error(error);
+        _self.authenticatedApi = undefined;
+        _self.setBridgeUsername(undefined);
+        _self.emitter.emit('errorNotRegistered');
+      })
+      .done();
+  }
+
+  /**
+   * Establishes a username for the Jibo application on the Hue bridge. This
+   * username will be stored for future use, to prevent re-registering.
+   * @param  {string} ipAddress The IP address of the Hue bridge.
+   */
+  registerApplication(ipAddress) {
+    var _self = this;
+    var tempApi = new Hue.HueApi();
+
+    tempApi.registerUser(ipAddress, 'jibo-philips-hue')
+      .then(function(username){
+        // Example response:
+        // Existing device user found: 51780342fd7746f2fb4e65c30b91d7
+        console.log('Device user found: %s', username);
+
+        // Store the authenticated API.
+        _self.setBridgeUsername(username);
+        _self.authenticatedApi = new Hue.HueApi(ipAddress, _self.getBridgeUsername());
+        _self.validateBridgeConnection();
+      })
+      .fail(function(error){
+        // User is not registered with the device.
+        console.error(error);
+        _self.emitter.emit('errorNotRegistered');
+      })
+      .done();
   }
 
   /**
@@ -242,8 +320,10 @@ class LightingController {
    */
   turnOffLights() {
     var _self = this;
+    var lightState = Hue.lightState.create().off();
+
     console.log('Turning off the lights');
-    _self.authenticatedApi.turnOff();
+    _self.changeLightsState(lightState);
   }
 
   /**
@@ -251,8 +331,10 @@ class LightingController {
    */
   turnOnLights() {
     var _self = this;
+    var lightState = Hue.lightState.create().on().brightness(100);
+
     console.log('Turning on the lights');
-    _self.authenticatedApi.turnOn();
+    _self.changeLightsState(lightState);
   }
 
   /**
@@ -261,8 +343,36 @@ class LightingController {
    */
   dimLights() {
     var _self = this;
-    console.log('Diming the lights');
-    _self.authenticatedApi.brightness(50); // Range is 0 - 100 percent.
+    var lightState = Hue.lightState.create().on().brightness(30); // Available range is 0 - 100.
+
+    console.log('Dimming the lights');
+    _self.changeLightsState(lightState);
+  }
+
+  /**
+   * Modifies the state of all lights that are accessible to the authenticated Hue bridge.
+   * The light state object contains information about the change (brightness, on/off, etc.).
+   * @param  {lightState} lightState Contains information about the desired light state. Available settings and helper API can be found at https://github.com/peter-murray/node-hue-api#using-lightstate-to-build-states.
+   */
+  changeLightsState(lightState) {
+    var _self = this;
+    _self.authenticatedApi.lights()
+      .then(function(result){
+        _.forEach(result.lights, function(light){
+          _self.authenticatedApi.setLightState(light.id, lightState)
+            .then(function(result){
+              console.log('Attempted to change state of light #%s with result of "%s"', light.id, JSON.stringify(result, null, 2));
+            })
+            .fail(function(error){
+              console.error(error);
+            })
+            .done();
+        })
+      })
+      .fail(function(error){
+        console.error(error);
+      })
+      .done();
   }
 }
 

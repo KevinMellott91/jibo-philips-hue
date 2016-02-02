@@ -36,3 +36,7 @@ The first time you use the application, Jibo will ask you to press the Hue bridg
 <small>*[Jibo uses node-hue-api to connect to the Hue bridge]*<br /></small>
 **Jibo**: I am connected to your lighting system. How can I help you today?<br />
 <small>*[Jibo uses node-hue-api to turn on all lights]*<br /></small>
+
+## Troubleshooting
+Philips provides a [bridge detection page](https://www.meethue.com/api/nupnp), which will list information about the Hue bridges connected to your network. This page
+is very useful if Jibo is having difficulty establishing a connection with your bridge.
