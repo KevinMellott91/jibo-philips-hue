@@ -141,7 +141,7 @@ class LightingController {
       case 'errorNotRegistered':
         message = _self.errorNotRegisteredPublished === true
           ? "Just a minute while I connect to your lighting system."
-          : "Press and hold the button on your Philips Hue bridge. I'll let you know when I'm connected.";
+          : "Press the button on your Philips Hue bridge and I'll let you know when I'm connected.";
         _self.errorNotRegisteredPublished = true;
         break;
       case 'bridgeConnected':
