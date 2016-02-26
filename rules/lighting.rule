@@ -2,11 +2,18 @@ TopRule = $* (
     $TurnOn {action = 'on'} |
     $TurnOff {action = 'off'} |
     $Dim {action = 'dim'} |
+    $Night {action = 'night'} |
+    $Bedtime {action = 'sleep'} |
+    $factory:yes_no{confirm = yes_no._nl} |
     $Connect {action = 'connect'}
-) $*;
+) $* ?((in the $room {room = room.name}) | (at $schedule {schedule = schedule.time})) $*;
 
 Change = (turn | switch | flip);
 TurnOn = $Change $* (on | up);
 TurnOff = $Change $* off;
 Dim = (dim | ($Change down));
+Night = (is | getting | it\'s) $* (dark | late);
+Bedtime = (going | time) $* (bed | sleep);
 Connect = (connect | try | retry);
+room @= (+$w) {name=_parsed};
+schedule = $factory:time{time = time._time_time};

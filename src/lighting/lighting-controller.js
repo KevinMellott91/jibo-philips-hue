@@ -2,6 +2,7 @@ import Hue from 'node-hue-api';
 import _ from 'lodash';
 import fs from 'fs';
 import nconf from 'nconf';
+import moment from 'moment';
 
 /**
  * Main class that allows the program to interact with the Philips Hue API, which
@@ -11,8 +12,9 @@ class LightingController {
   /**
    * Initializes the variables within the lighting controller.
    * @param  {EventEmitter} emitter The emitter that should be used when publishing or consuming events.
+   * @param  {Logger} logger The object that should be used to log messages (informational, trace, error, etc).
    */
-  init (emitter) {
+  init (emitter, logger) {
     var _self = this;
     if (!_self.initialized) {
       _self.initialized = true;
@@ -20,6 +22,7 @@ class LightingController {
       _self.connectionInProgress = false;
       _self.connectionRetryAttempts = 0;
       _self.emitter = emitter;
+      _self.logger = logger;
 
       // Attempt to load the Hue bridge name.
       nconf.use('file', { file: 'config.json' });
@@ -62,17 +65,17 @@ class LightingController {
    */
   configureEvents() {
     var _self = this;
-    console.log('Configuring lighting-controller events.');
+    _self.logger.trace('Configuring lighting-controller events.');
 
     // Attempt to connect to the Hue bridge.
     _self.emitter.on('bridgeRetry', function(event){
-      console.log("Retry attempt #%s to establish bridge connection.", _self.connectionRetryAttempts);
+      _self.logger.info("Retry attempt #%s to establish bridge connection.", _self.connectionRetryAttempts);
       _self.setupHueApi();
     });
 
     // Connection to the Hue bridge timed out.
     _self.emitter.on('bridgeTimeout', function(event){
-      console.log("Retry timed out after %s attempts.", _self.connectionRetryAttempts);
+      _self.logger.info("Retry timed out after %s attempts.", _self.connectionRetryAttempts);
       _self.connectionInProgress = false;
       _self.publishMessage('bridgeTimeout');
     });
@@ -95,6 +98,7 @@ class LightingController {
 
     // Successful connection to the Hue bridge.
     _self.emitter.on('bridgeConnected', function(event){
+      _self.logger.info("Connection to bridge has been established.");
       _self.publishMessage('bridgeConnected');
 
       // Update the tracking information.
@@ -156,6 +160,18 @@ class LightingController {
       case 'connectionInProgress':
         message = "Just a minute while I connect to your lighting system.";
         break;
+      case 'sleepPrompt':
+        message = 'Would you like me to turn off the lights in five minutes?';
+        break;
+      case 'nightPrompt':
+        message = 'Would you like me to turn on the lights?';
+        break;
+      case 'nightConfirmation':
+        message = 'Oh, that\'s much better!';
+        break;
+      case 'invalidRoom':
+        message = 'I don\'t recognize that room.';
+        break;
     }
     _self.emitter.emit('userMessage', message);
   }
@@ -165,7 +181,7 @@ class LightingController {
    */
   setupFakeBridge() {
     var _self = this;
-    console.log('setting up fake bridge connection.');
+    _self.logger.trace('setting up fake bridge connection.');
     _self.connectionInProgress = true;
     _self.authenticatedApi = Hue.api('192.168.1.8', 'newdeveloper');
     _self.emitter.emit('bridgeConnected');
@@ -179,12 +195,12 @@ class LightingController {
     _self.connectionInProgress = true;
 
     // Detect the Hue bridges within range.
-    console.log('setting up actual bridge connection.');
+    _self.logger.trace('setting up actual bridge connection.');
     Hue.nupnpSearch()
       .then(function(bridges){
         // Example response:
         // Hue Bridges Found: [{"id":"001788fffe096103","ipaddress":"192.168.2.129","name":"Philips Hue","mac":"00:00:00:00:00"}]
-        console.log('Hue Bridges Found: %s', JSON.stringify(bridges));
+        _self.logger.trace('Hue Bridges Found: %s', JSON.stringify(bridges));
 
         // Ensure that we found bridges.
         if(bridges.length === 0)
@@ -206,7 +222,7 @@ class LightingController {
       })
       .fail(function(error){
         // Could not communicate with the bridge.
-        console.error(error);
+        _self.logger.error(error);
         _self.emitter.emit('errorNoBridge');
       })
       .done();
@@ -227,7 +243,7 @@ class LightingController {
       })
       .fail(function(error){
         // Clear out the stored username.
-        console.error(error);
+        _self.logger.error(error);
         _self.authenticatedApi = undefined;
         _self.setBridgeUsername(undefined);
         _self.emitter.emit('errorNotRegistered');
@@ -248,7 +264,7 @@ class LightingController {
       .then(function(username){
         // Example response:
         // Existing device user found: 51780342fd7746f2fb4e65c30b91d7
-        console.log('Device user found: %s', username);
+        _self.logger.trace('Device user found: %s', username);
 
         // Store the authenticated API.
         _self.setBridgeUsername(username);
@@ -257,7 +273,7 @@ class LightingController {
       })
       .fail(function(error){
         // User is not registered with the device.
-        console.error(error);
+        _self.logger.error(error);
         _self.emitter.emit('errorNotRegistered');
       })
       .done();
@@ -275,15 +291,24 @@ class LightingController {
   /**
    * Triggers behavior within the Hue API, based on the provided action.
    * @param  {string} action The type of action to take (turn on lights, turn off lights, etc).
+   * @param {object} params Additional options to be used when invoking the action.
    */
-  takeAction(action) {
+  takeAction(action, params) {
     var _self = this;
+
+    // Clear out any pending actions. These are used for advanced interactions (confirmations, etc).
+    _self.request = {
+      action: action,
+      time: params.time,
+      room: params.room,
+      state: {}
+    };
 
     // If there is not a valid connection, then do not process the command.
     if(!_self.connectionEstablished) {
       // Trigger the retry workflow if it isn't already running.
       if(!_self.connectionInProgress) {
-        console.log('Attempting connection to the Hue bridge.')
+        _self.logger.trace('Attempting connection to the Hue bridge.')
         _self.connectionRetryAttempts = 0;
         _self.setupHueApi();
       }
@@ -294,7 +319,7 @@ class LightingController {
     }
 
     // Call the appropriate method, based on the incoming request.
-    console.log('Received request for action: %s.', action);
+    _self.logger.info('Received request for action: %s.', action);
     switch(action)
     {
       case 'on':
@@ -306,6 +331,12 @@ class LightingController {
       case 'dim':
         _self.dimLights();
         break;
+      case 'night':
+        _self.nighttimeBehavior();
+        break;
+      case 'sleep':
+        _self.bedtimeBehavior();
+        break;
       case 'connect':
         _self.setupHueApi();
         break;
@@ -316,14 +347,54 @@ class LightingController {
   }
 
   /**
+   * Confirms an action that is already in progress, triggering the next steps in the process.
+   */
+  confirmAction() {
+    var _self = this;
+
+    // Call the appropriate method, based on the incoming request.
+    _self.logger.info('Confirming action: %s.', _self.request.pendingAction);
+    switch(_self.request.pendingAction)
+    {
+      case 'night':
+        // Turn on all of the lights and provide a confirmation message.
+        _self.turnOnLights();
+        _self.publishMessage('nightConfirmation');
+        break;
+      case 'sleep':
+        // Turn off all of the lights in five minutes.
+        _self.request.time = moment().add(5, 'minutes');
+        _self.turnOffLights();
+        break;
+      default:
+        _self.publishMessage('invalidCommand');
+        break;
+    }
+  }
+
+  /**
+   * Clears any pending action information.
+   */
+  cancelAction() {
+    var _self = this;
+
+    // Cancel the request.
+    _self.logger.trace('Cancelling request of type "%s"', _self.request.pendingAction);
+    _self.request = {};
+
+    // Send an acknowledgment back to the user, to let them know that a change is coming.
+    _self.emitter.emit('acknowledgeRequest');
+  }
+
+  /**
    * Uses the Hue API to turn off all lights within range.
    */
   turnOffLights() {
     var _self = this;
-    var lightState = Hue.lightState.create().off();
+    _self.request.state = Hue.lightState.create().off();
 
-    console.log('Turning off the lights');
-    _self.changeLightsState(lightState);
+    _self.logger.trace('Turning off the lights');
+    _self.changeLightsState();
   }
 
   /**
@@ -331,10 +402,10 @@ class LightingController {
    */
   turnOnLights() {
     var _self = this;
-    var lightState = Hue.lightState.create().on().brightness(100);
+    _self.request.state = Hue.lightState.create().on().brightness(100);
 
-    console.log('Turning on the lights');
-    _self.changeLightsState(lightState);
+    _self.logger.trace('Turning on the lights');
+    _self.changeLightsState();
   }
 
   /**
@@ -343,36 +414,233 @@ class LightingController {
    */
   dimLights() {
     var _self = this;
-    var lightState = Hue.lightState.create().on().brightness(30); // Available range is 0 - 100.
+    _self.request.state = Hue.lightState.create().on().brightness(30); // Available range is 0 - 100.
 
-    console.log('Dimming the lights');
-    _self.changeLightsState(lightState);
+    _self.logger.trace('Dimming the lights');
+    _self.changeLightsState();
+  }
+
+  /**
+   * Triggers the nighttime use case, with Jibo confirming that the user would like to
+   * turn off all lights in the home.
+   */
+  nighttimeBehavior() {
+    var _self = this;
+    _self.logger.trace('Invoking nighttime behavior.');
+
+    // If this action is not already pending, then kick off the interaction.
+    if(_self.request.pendingAction != 'night') {
+      // Ask if they want the lights turned on.
+      _self.publishMessage('nightPrompt');
+
+      // Mark this as a pending action.
+      _self.request.pendingAction = 'night';
+    }
+  }
+
+  /**
+   * Triggers the bedtime use case, with Jibo confirming that the user would like to
+   * turn off all lights in the home in 5 minutes.
+   */
+  bedtimeBehavior() {
+    var _self = this;
+    _self.logger.trace('Invoking bedtime behavior.');
+
+    // If this action is not already pending, then kick off the interaction.
+    if(_self.request.pendingAction != 'sleep') {
+      // Ask if they want the lights turned off.
+      _self.publishMessage('sleepPrompt');
+
+      // Mark this as a pending action.
+      _self.request.pendingAction = 'sleep';
+    }
+  }
+
+  /**
+   * If all of the lights have been processed, then this will publish a notification message for the main application.
+   * @param  {integer} lightsProcessed Total number of lights that have already been processed.
+   * @param  {integer} totalLights Number of lights that require processing.
+   */
+  updateLightsStatusCheck(lightsProcessed, totalLights) {
+    var _self = this;
+
+    if(lightsProcessed === totalLights) {
+      // Determine which action was taken (on/off/dim)
+      if(_self.request && _self.request.action)
+      {
+        // Parse the human-readable action.
+        var action = _self.request.action;
+        if(action != 'on' && action != 'off' && action != 'dim') {
+          // Determine the inferred action, if necessary.
+          if(action === 'night') action = 'on';
+          if(action === 'sleep') action = 'off';
+        }
+
+        // Emit the room-specific message.
+        if(_self.request.room) {
+          if(action === 'dim') {
+            _self.emitter.emit('userMessage', "I've dimmed the lights in the " + _self.request.room);
+          }
+          // on/off
+          else {
+            _self.emitter.emit('userMessage', "I've turned " + action + " the lights in the " + _self.request.room);
+          }
+        }
+        // Emit the schedule-specific message.
+        else if(_self.request.schedule && _self.request.schedule.localtime) {
+          var displayTime = moment(_self.request.schedule.localtime).format('h:mma');
+          if(action === 'dim') {
+            _self.emitter.emit('userMessage', "Certainly, I'll dim them at " + displayTime);
+          }
+          // on/off
+          else {
+            _self.emitter.emit('userMessage', "Certainly, I'll turn them " + action + " at " + displayTime);
+          }
+        }
+      }
+      // Also notify with a message if an action was scheduled for the future.
+      else if(_self.request.time) {
+        var message = "Certainly, I'll turn them <on/off> at <5:00 PM>";
+        _self.emitter.emit('userMessage', message);
+      }
+
+      // Notify the general completion message.
+      _self.logger.trace('Processed all %s light(s), publishing "acknowledgeRequest" notification message.', lightsProcessed);
+      _self.emitter.emit('acknowledgeRequest');
+    }
+  }
+
+  /**
+   * Updates each of the lights matching the filter (if supplied), using the provided
+   * update action.
+  */
+  updateLights() {
+    var _self = this;
+
+    // Access the connected lights.
+    _self.authenticatedApi.lights()
+      .then(function(result){
+        // Track the number of lights processed, so that we know when we are done.
+        var totalLights = _.size(result.lights);
+        var lightsProcessed = 0;
+
+        // Loop through each light that was detected.
+        _.forEach(result.lights, function(light){
+          // Leave this light alone if it is not in the specified room (if a room filter was supplied).
+          if(_self.request.filteredLightIds && _.some(_self.request.filteredLightIds, light.id) === '') {
+            _self.logger.info('skipping light #%s because it is not in the %s.', light.id, _self.request.room);
+
+            // Notify if we have processed all of the lights.
+            ++lightsProcessed;
+            _self.updateLightsStatusCheck(lightsProcessed, totalLights);
+            return;
+          }
+
+          // If a schedule was provided, then apply the changes using it.
+          if(_self.request.schedule) {
+            // Set the bulb information and setup the schedule.
+            _self.request.schedule.command.address = '/api/' + _self.hueBridgeUsername + '/lights/' + light.id + '/state';
+
+            _self.logger.info("Changing state of light #%s to %s at %s.", light.id, JSON.stringify(_self.request.state._values), _self.request.schedule.time);
+            _self.authenticatedApi.scheduleEvent(_self.request.schedule)
+              .then(function(result){
+                _self.logger.info('Attempted to schedule change for light #%s with result of "%s"', light.id, JSON.stringify(result, null, 2));
+              })
+              .fail(function(error){
+                _self.logger.error(error);
+              })
+              .done(function(data){
+                // Notify if we have processed all of the lights.
+                ++lightsProcessed;
+                _self.updateLightsStatusCheck(lightsProcessed, totalLights);
+              });
+          }
+          // Otherwise, make the change immediately.
+          else {
+            _self.logger.info("Changing state of light #%s to %s.", light.id, JSON.stringify(_self.request.state._values));
+            _self.authenticatedApi.setLightState(light.id, _self.request.state)
+              .then(function(result){
+                _self.logger.info('Attempted to change state of light #%s with result of "%s"', light.id, JSON.stringify(result, null, 2));
+              })
+              .fail(function(error){
+                _self.logger.error(error);
+              })
+              .done(function(data){
+                // Notify if we have processed all of the lights.
+                ++lightsProcessed;
+                _self.updateLightsStatusCheck(lightsProcessed, totalLights);
+              });
+          }
+        })
+      })
+      .fail(function(error){
+        _self.logger.error(error);
+      });
   }
 
   /**
    * Modifies the state of all lights that are accessible to the authenticated Hue bridge.
    * The light state object contains information about the change (brightness, on/off, etc.).
-   * @param  {lightState} lightState Contains information about the desired light state. Available settings and helper API can be found at https://github.com/peter-murray/node-hue-api#using-lightstate-to-build-states.
    */
-  changeLightsState(lightState) {
+  changeLightsState() {
     var _self = this;
-    _self.authenticatedApi.lights()
-      .then(function(result){
-        _.forEach(result.lights, function(light){
-          _self.authenticatedApi.setLightState(light.id, lightState)
-            .then(function(result){
-              console.log('Attempted to change state of light #%s with result of "%s"', light.id, JSON.stringify(result, null, 2));
-            })
-            .fail(function(error){
-              console.error(error);
-            })
-            .done();
+
+    // Create a schedule that represents the users request, if one was provided.
+    if(_self.request.time) {
+      var time = moment(_self.request.time, "hh:mmA");
+      _self.request.schedule = {
+        'name': 'Jibo Schedule',
+        'description': 'This schedule was created by the jibo-philips-hue application.',
+        'time': time.format('YYYY-MM-DDTHH:mm:ss'),
+        'localtime': time.format('YYYY-MM-DDTHH:mm:ss'),
+        'command': {
+          'method' : 'PUT',
+          'body'   : _self.request.state._values
+        }
+      };
+    }
+
+    // If a room filter was provided, then identify all lights that should be altered.
+    if(_self.request.room) {
+      // This array will restrict the lights being altered.
+      _self.request.filteredLightIds = [];
+
+      // Get information from light groups.
+      _self.authenticatedApi.groups()
+        .then(function(groups){
+          // Capture the results of this API invocation.
+          _self.logger.trace('Located %s light group(s). Details: %s.', _.size(groups), JSON.stringify(groups));
+
+          // Locate the group that matches the specified room.
+          var group = _.find(groups, function(g) { return _.toLower(g.name) == _.toLower(_self.request.room); })
+          if(group) {
+            _self.logger.trace('Found a group that matched requested room. Details: %s.', JSON.stringify(group));
+
+            // Locate the lights in the matching group.
+            _self.authenticatedApi.getGroup(group.id)
+              .then(function(groupDetails){
+                // Use the lights in this room as our filter.
+                _self.request.filteredLightIds = groupDetails.lights;
+                _self.updateLights();
+              })
+              .fail(function(error){
+                _self.logger.error(error);
+              })
+              .done();
+          }
+          else {
+            _self.logger.warn('No matching groups were found for room "%s".', _self.request.room);
+            _self.publishMessage('invalidRoom');
+          }
         })
-      })
-      .fail(function(error){
-        console.error(error);
-      })
-      .done();
+        .fail(function(error){
+          _self.logger.error(error);
+        })
+        .done();
+    }
+    else {
+      _self.updateLights();
+    }
   }
 }
 

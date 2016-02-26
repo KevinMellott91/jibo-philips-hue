@@ -8,7 +8,6 @@ module.exports = createBehavior({
     },
     start() {
         this.status = Status.SUCCEEDED;
-        console.log(this.text);
         return true;
     },
     stop() {

@@ -1,8 +1,9 @@
 import jibo from 'jibo';
 import LightingController from './lighting/lighting-controller';
 import ApplicationEmitter from './lighting/application-emitter';
-let {Status, factory} = jibo.bt;
+import log4js from 'log4js';
 
+let {Status, factory} = jibo.bt;
 let blackboard = {};
 let notepad = {};
 
@@ -39,11 +40,18 @@ jibo.init().then(() => {
     let eyeElement = document.getElementById('eye');
     jibo.visualize.createRobotRenderer(eyeElement, jibo.visualize.DisplayType.EYE);
 
+    log4js.configure({
+      appenders: [
+        { type: 'console' }
+    ]});
+    blackboard.Logger = log4js.getLogger();
+    blackboard.Logger.setLevel('TRACE');
+
     const applicationEmitter = new ApplicationEmitter();
     blackboard.Emitter = applicationEmitter;
 
     blackboard.LightingController = new LightingController();
-    blackboard.LightingController.init(blackboard.Emitter);
+    blackboard.LightingController.init(blackboard.Emitter, blackboard.Logger);
 
     start();
 }).catch(e => {
