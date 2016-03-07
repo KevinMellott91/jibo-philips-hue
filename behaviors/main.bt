@@ -4,12 +4,12 @@
         "class": "Sequence",
         "name": "",
         "asset-pack": "core",
-        "args": [],
         "children": [
             40,
             253
         ],
-        "decorators": []
+        "decorators": [],
+        "options": {}
     },
     "12": {
         "id": 12,
@@ -17,8 +17,8 @@
         "name": "Parse Commands",
         "asset-pack": "core",
         "parent": 253,
-        "args": [
-            [
+        "options": {
+            "getOptions": [
                 "() => {",
                 "    let options = {",
                 "        heyJibo: false,",
@@ -29,10 +29,10 @@
                 "    return options;",
                 "}"
             ],
-            "lighting.rule",
-            [
+            "rule": "lighting.rule",
+            "onResult": [
                 "(listener) => {",
-                "  listener.on('cloud', (asrResult, speakerIds) => {",
+                "  listener.on('cloud', function(asrResult, speakerIds) {",
                 "    // Capture the result, if one is detected.",
                 "    if(asrResult && asrResult.NLParse) {",
                 "      // Re-initialize the results each time.",
@@ -61,7 +61,7 @@
                 "  });",
                 "}"
             ]
-        ]
+        }
     },
     "40": {
         "id": 40,
@@ -69,23 +69,23 @@
         "name": "Setup Philips Hue connectivity error handlers",
         "asset-pack": "core",
         "parent": 1,
-        "args": [
-            [
+        "options": {
+            "exec": [
                 "() => {",
                 "  // Setup the events.",
                 "  blackboard.LightingController.configureEvents();",
                 "  ",
                 "  // Jibo speaks to the user.",
-                "  blackboard.Emitter.on('userMessage', function(message){",
+                "  emitter.on('userMessage', function(message){",
                 "    jibo.tts.speak(message);",
                 "  });",
                 "  ",
                 "  // Jibo acknowledges requests from the user.",
-                "  blackboard.Emitter.on('acknowledgeRequest', function(message){",
+                "  emitter.on('acknowledgeRequest', function(message){",
                 "    // Play the acknowledgment animation.",
                 "    let animation = jibo.bt.behaviors.PlayAnimation('acknowledgment', 'greeting.keys');",
                 "    if(animation.start()) {",
-                "      setInterval(() => {",
+                "      setInterval(function() {",
                 "        animation.update();",
                 "      }, 33);",
                 "    }",
@@ -95,7 +95,7 @@
                 "  blackboard.LightingController.setupHueApi();",
                 "}"
             ]
-        ]
+        }
     },
     "253": {
         "id": 253,
@@ -103,29 +103,32 @@
         "name": "",
         "asset-pack": "core",
         "parent": 1,
-        "args": [],
         "decorators": [
             255
         ],
         "children": [
             12
-        ]
+        ],
+        "options": {}
     },
     "255": {
         "id": 255,
         "class": "WhileCondition",
         "name": "",
         "asset-pack": "core",
-        "args": [
-            [
+        "options": {
+            "init": [
                 "() => {",
                 "}"
             ],
-            [
+            "conditional": [
                 "() => {",
                 "    return true;",
                 "}"
             ]
-        ]
+        }
+    },
+    "meta": {
+        "version": 1
     }
 }

@@ -1,22 +1,26 @@
-import jibo from 'jibo';
-import LightingController from './lighting/lighting-controller';
-import ApplicationEmitter from './lighting/application-emitter';
-import log4js from 'log4js';
+"use strict";
 
-let {Status, factory} = jibo.bt;
+let jibo = require('jibo');
+let LightingController = require('./lighting/lighting-controller');
+let ApplicationEmitter = require('./lighting/application-emitter');
+let log4js = require('log4js');
+
+let Status = jibo.bt.Status;
 let blackboard = {};
 let notepad = {};
+let emitter = new ApplicationEmitter();
 
 /**
  * Provides the main starting point for the Jibo skill.
  */
 function start() {
-    let root = factory.create('../behaviors/main', {
+    let root = jibo.bt.create('../behaviors/main', {
       blackboard: blackboard,
-      notepad: notepad
+      notepad: notepad,
+      emitter: emitter
     });
     root.start();
-    let intervalId = setInterval(() => {
+    let intervalId = setInterval(function() {
         if (root.status !== Status.IN_PROGRESS) {
             clearInterval(intervalId);
         }
@@ -32,11 +36,7 @@ function start() {
  * blackboard object. This allows the various Jibo behaviors to use functionality provided
  * by these classes, without needing to create another instance.
  */
-jibo.init().then(() => {
-    require('./behaviors/debug-behavior');
-    require('./lighting/lighting-controller');
-    require('./lighting/application-emitter');
-
+jibo.init(function() {
     let eyeElement = document.getElementById('eye');
     jibo.visualize.createRobotRenderer(eyeElement, jibo.visualize.DisplayType.EYE);
 
@@ -47,13 +47,8 @@ jibo.init().then(() => {
     blackboard.Logger = log4js.getLogger();
     blackboard.Logger.setLevel('TRACE');
 
-    const applicationEmitter = new ApplicationEmitter();
-    blackboard.Emitter = applicationEmitter;
-
     blackboard.LightingController = new LightingController();
-    blackboard.LightingController.init(blackboard.Emitter, blackboard.Logger);
+    blackboard.LightingController.init(emitter, blackboard.Logger);
 
     start();
-}).catch(e => {
-    console.error(e);
 });

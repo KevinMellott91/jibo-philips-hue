@@ -1,8 +1,10 @@
-import Hue from 'node-hue-api';
-import _ from 'lodash';
-import fs from 'fs';
-import nconf from 'nconf';
-import moment from 'moment';
+"use strict";
+
+let Hue = require('node-hue-api');
+let _ = require('lodash');
+let fs = require('fs');
+let nconf = require('nconf');
+let moment = require('moment');
 
 /**
  * Main class that allows the program to interact with the Philips Hue API, which
@@ -644,4 +646,4 @@ class LightingController {
   }
 }
 
-export default LightingController;
+module.exports = LightingController;

@@ -1,20 +1,19 @@
 {
 	"name": "jibo-philips-hue",
-	"version": "0.1.1",
+	"version": "1.0.0",
 	"description": "",
 	"main": "index.html",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"dependencies": {
-		"babel-core": "5.4.5",
-		"behaviorify": "0.1.3",
-		"jibo": "0.10.0",
-		"node-hue-api": "2.1.1",
-		"lodash": "4.5.1",
+		"behaviorify": "1.0.0",
+		"jibo": "2.0.3",
+		"node-hue-api": "2.2.0",
+		"lodash": "4.6.1",
 		"nconf": "0.8.4",
-		"moment": "2.11.2",
-		"log4js": "0.6.31"
+		"moment": "2.12.0",
+		"log4js": "0.6.32"
 	},
 	"devDependencies": {},
 	"license": "UNLICENSED",
