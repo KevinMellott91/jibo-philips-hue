@@ -8,7 +8,6 @@ let log4js = require('log4js');
 let Status = jibo.bt.Status;
 let blackboard = {};
 let notepad = {};
-let emitter = new ApplicationEmitter();
 
 /**
  * Provides the main starting point for the Jibo skill.
@@ -16,8 +15,7 @@ let emitter = new ApplicationEmitter();
 function start() {
     let root = jibo.bt.create('../behaviors/main', {
       blackboard: blackboard,
-      notepad: notepad,
-      emitter: emitter
+      notepad: notepad
     });
     root.start();
     let intervalId = setInterval(function() {
@@ -47,8 +45,11 @@ jibo.init(function() {
     blackboard.Logger = log4js.getLogger();
     blackboard.Logger.setLevel('TRACE');
 
+    const applicationEmitter = new ApplicationEmitter();
+    blackboard.Emitter = applicationEmitter;
+
     blackboard.LightingController = new LightingController();
-    blackboard.LightingController.init(emitter, blackboard.Logger);
+    blackboard.LightingController.init(blackboard.Emitter, blackboard.Logger);
 
     start();
 });
