@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="description" content="Jibo-philips-hue : Integrates Jibo with the Philips Hue API to control lighting with the home.">
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Jibo-philips-hue</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/KevinMellott91/jibo-philips-hue">View on GitHub</a>
+
+          <h1 id="project_title">Jibo-philips-hue</h1>
+          <h2 id="project_tagline">Integrates Jibo with the Philips Hue API to control lighting with the home.</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/KevinMellott91/jibo-philips-hue/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/KevinMellott91/jibo-philips-hue/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>
+<a id="jibo-philips-hue" class="anchor" href="#jibo-philips-hue" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Jibo Philips Hue</h1>
+
+<p>This example shows how <a href="http://www.developers.meethue.com">Philips Hue</a> can be used within <a href="http://www.jibo.com">Jibo</a> to allow a person to control lights within their home. Specifically, this Jibo skill uses the <a href="https://github.com/peter-murray/node-hue-api">node-hue-api</a> framework written by <a href="https://github.com/peter-murray">Peter Murray</a> to communicate with the Hue bridge.</p>
+
+<h2>
+<a id="prerequisites" class="anchor" href="#prerequisites" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Prerequisites</h2>
+
+<p>Prior to using this Jibo application, the Philips Hue bridge must already been configured and connected to the lights within your home.</p>
+
+<p>In order to control rooms of lights (ex: <em>Hey Jibo, turn on the lights in the living room</em>), the lights first need to be placed into a <em>group</em>. Although the <a href="http://www2.meethue.com/en-us/support">official Philips Hue app</a> does not support this functionality, there are several alternative apps (<a href="http://huemoteapp.com">Huemote</a> for iOS and <a href="http://lampshade.io">LampShade.io</a> for Android) that will configure groups. Additionally, you can use the <a href="https://community.smartthings.com/t/philips-hue-groups-control-app/3455">Hue API Debug Tool</a> to setup groups.</p>
+
+<h2>
+<a id="example-usage" class="anchor" href="#example-usage" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Example Usage</h2>
+
+<p>When running the application, the following interactions will occur. The first time, Jibo will ask you to press the Hue bridge's pairing button. This allows him to connect to the Philips Hue bridge and should only occur once.</p>
+
+<h3>
+<a id="turn-onoff-all-lights" class="anchor" href="#turn-onoff-all-lights" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Turn on/off all lights</h3>
+
+<p><strong>Human</strong>: Jibo, turn the lights <em>on/off</em><br>
+<em>[Jibo nods to indicate acknowledgement of the question]</em><br>
+<em>[Jibo uses node-hue-api to turn on/off all lights]</em><br></p>
+
+<h3>
+<a id="dim-all-lights" class="anchor" href="#dim-all-lights" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Dim all lights</h3>
+
+<p><strong>Human</strong>: Jibo, dim the lights<br>
+<em>[Jibo nods to indicate acknowledgement of the question]</em><br>
+<em>[Jibo uses node-hue-api to dim all lights]</em><br></p>
+
+<h3>
+<a id="turn-onoff-specific-lights" class="anchor" href="#turn-onoff-specific-lights" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Turn on/off specific lights</h3>
+
+<p><strong>Human</strong>: Jibo, turn <em>on/off</em> the lights in the <em>living room, bedroom, kitchen</em><br>
+<em>[Jibo nods to indicate acknowledgement of the question]</em><br>
+<em>[Jibo uses node-hue-api to identify the desired lights and turn them on/off]</em><br>
+<strong>Jibo</strong>: I've turned <em>on/off</em> the lights in the <em>living room, bedroom, kitchen</em><br></p>
+
+<h3>
+<a id="turn-on-all-lights-night-scenario" class="anchor" href="#turn-on-all-lights-night-scenario" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Turn on all lights (night scenario)</h3>
+
+<p><strong>Human</strong>: Jibo, it's getting dark<br>
+<strong>Jibo</strong>: Would you like me to turn on the lights?<br>
+<strong>Human</strong>: Yes<br>
+<em>[Jibo nods to indicate acknowledgement of the question]</em><br>
+<em>[Jibo uses node-hue-api to turn on all lights]</em><br>
+<strong>Jibo</strong>: Oh, that's much better!<br></p>
+
+<h3>
+<a id="turn-off-all-lights-bedtime-scenario" class="anchor" href="#turn-off-all-lights-bedtime-scenario" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Turn off all lights (bedtime scenario)</h3>
+
+<p><strong>Human</strong>: Jibo, I'm going to bed<br>
+<strong>Jibo</strong>: Would you like me to turn off the lights in five minutes?<br>
+<strong>Human</strong>: Yes<br>
+<em>[Jibo nods to indicate acknowledgement of the question]</em><br>
+<em>[Jibo uses node-hue-api to schedule all lights off in 5 minutes]</em><br></p>
+
+<h3>
+<a id="turn-onoff-all-lights-scheduling-scenario" class="anchor" href="#turn-onoff-all-lights-scheduling-scenario" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Turn on/off all lights (scheduling scenario)</h3>
+
+<p><strong>Human</strong>: Jibo, could you turn <em>on/off</em> the lights at <em>5 pm</em> today?<br>
+<em>[Jibo nods to indicate acknowledgement of the question]</em><br>
+<strong>Jibo</strong>: Certainly, I'll turn them <em>on/off</em> at <em>5 pm</em><br>
+<em>[Jibo uses node-hue-api to schedule all lights on/off at 5pm]</em><br></p>
+
+<h3>
+<a id="connect-to-philips-hue-bridge" class="anchor" href="#connect-to-philips-hue-bridge" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Connect to Philips Hue bridge</h3>
+
+<p><em>[Jibo uses node-hue-api to discover it is not connected to the Hue bridge]</em><br>
+<strong>Jibo</strong>: Press the button on your Philips Hue bridge and I'll let you know when I'm connected.<br>
+<em>[Human presses the Philips Hue bridge button]</em><br>
+<em>[Jibo uses node-hue-api to connect to the Hue bridge]</em><br>
+<strong>Jibo</strong>: I am connected to your lighting system. How can I help you today?<br></p>
+
+<h2>
+<a id="troubleshooting" class="anchor" href="#troubleshooting" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Troubleshooting</h2>
+
+<p>Philips provides a <a href="https://www.meethue.com/api/nupnp">bridge detection page</a>, which will list information about the Hue bridges connected to your network. This page
+is very useful if Jibo is having difficulty establishing a connection with your bridge.</p>
+
+<p>The <a href="http://www.developers.meethue.com/documentation/getting-started">Hue API Debug Tool</a> allows you to inspect the state of your light bulbs, which includes any schedule information.</p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Jibo-philips-hue maintained by <a href="https://github.com/KevinMellott91">KevinMellott91</a></p>
+        <p>Published with <a href="https://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
