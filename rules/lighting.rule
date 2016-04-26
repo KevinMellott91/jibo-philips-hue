@@ -1,5 +1,6 @@
 TopRule = $* (
     $TurnOn {action = 'on'} |
+    ($Color {action = 'color'} (to) $ColorName {color = ColorName.name}) |
     $TurnOff {action = 'off'} |
     $Dim {action = 'dim'} |
     $Night {action = 'night'} |
@@ -11,9 +12,11 @@ TopRule = $* (
 Change = (turn | switch | flip);
 TurnOn = $Change $* (on | up);
 TurnOff = $Change $* off;
+Color = $Change $* color;
 Dim = (dim | ($Change down));
 Night = (is | getting | it\'s) $* (dark | late);
 Bedtime = (going | time) $* (bed | sleep);
 Connect = (connect | try | retry);
 room @= (+$w) {name=_parsed};
 schedule = $factory:time{time = time._time_time};
+ColorName @= (+$w) {name=_parsed};
