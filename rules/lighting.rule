@@ -9,10 +9,10 @@ TopRule = $* (
     $Connect {action = 'connect'}
 ) $* ?((in the $room {room = room.name}) | (at $schedule {schedule = schedule.time})) $*;
 
-Change = (turn | switch | flip);
+Change = (turn | switch | flip | change);
 TurnOn = $Change $* (on | up);
-TurnOff = $Change $* off;
 Color = $Change $* color;
+TurnOff = $Change $* off;
 Dim = (dim | ($Change down));
 Night = (is | getting | it\'s) $* (dark | late);
 Bedtime = (going | time) $* (bed | sleep);
