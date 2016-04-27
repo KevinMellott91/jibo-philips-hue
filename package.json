@@ -1,6 +1,6 @@
 {
 	"name": "jibo-philips-hue",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "",
 	"main": "index.html",
 	"scripts": {
@@ -8,12 +8,13 @@
 	},
 	"dependencies": {
 		"behaviorify": "1.0.0",
-		"jibo": "2.0.3",
+		"jibo": "2.0.5",
 		"node-hue-api": "2.2.0",
-		"lodash": "4.6.1",
+		"lodash": "4.11.1",
 		"nconf": "0.8.4",
-		"moment": "2.12.0",
-		"log4js": "0.6.32"
+		"moment": "2.13.0",
+		"log4js": "0.6.35",
+		"path": "0.12.7"
 	},
 	"devDependencies": {},
 	"license": "UNLICENSED",
