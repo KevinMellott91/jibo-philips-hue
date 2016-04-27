@@ -303,6 +303,7 @@ class LightingController {
       action: action,
       time: params.time,
       room: params.room,
+      color: params.color,
       state: {}
     };
 
@@ -329,6 +330,9 @@ class LightingController {
         break;
       case 'off':
         _self.turnOffLights();
+        break;
+      case 'color':
+        _self.colorLights(_self.request.color);
         break;
       case 'dim':
         _self.dimLights();
@@ -368,6 +372,9 @@ class LightingController {
         _self.request.time = moment().add(5, 'minutes');
         _self.turnOffLights();
         break;
+      case 'color':
+          _self.colorLights(_self.request.color);
+          break;
       default:
         _self.publishMessage('invalidCommand');
         break;
@@ -396,6 +403,29 @@ class LightingController {
     _self.request.state = Hue.lightState.create().off();
 
     _self.logger.trace('Turning off the lights');
+    _self.changeLightsState();
+  }
+
+  /**
+   * Uses the Hue API to change the color of all lights within range.
+   */
+  colorLights(xColor) {
+    var _self = this;
+
+    switch(xColor){
+      case "red": _self.request.state = Hue.lightState.create().on().hue(0).sat(255); break;
+      case "orange": _self.request.state = Hue.lightState.create().on().hue(5000).sat(255); break;
+      case "yellow": _self.request.state = Hue.lightState.create().on().hue(18000).sat(255); break;
+      case "green": _self.request.state = Hue.lightState.create().on().hue(25500).sat(255); break;
+      case "cyan": _self.request.state = Hue.lightState.create().on().hue(36207).sat(255); break;
+      case "blue": _self.request.state = Hue.lightState.create().on().hue(46920).sat(255); break;
+      case "pink": _self.request.state = Hue.lightState.create().on().hue(56100).sat(255); break;
+      case "indigo": _self.request.state = Hue.lightState.create().on().hue(48500).sat(255); break;
+      case "violet": _self.request.state = Hue.lightState.create().on().hue(46000).sat(255); break;
+      default: _self.request.state = Hue.lightState.create().on().rgb(255,255,255); break; // white
+    }
+
+    _self.logger.trace('Setting the lights to color '+xColor);
     _self.changeLightsState();
   }
 
