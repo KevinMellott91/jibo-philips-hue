@@ -46,12 +46,24 @@ When running the application, the following interactions will occur. The first t
 **Jibo**: Certainly, I'll turn them *on/off* at *5 pm*<br />
 <small>*[Jibo uses node-hue-api to schedule all lights on/off at 5pm]*<br /></small>
 
+### Change the color of all lights
+**Human**: Jibo, change the color of the lights to *red/orange/yellow/green/cyan/blue/pink/indigo/violet*<br />
+<small>*[Jibo nods to indicate acknowledgement of the request]*<br /></small>
+<small>*[Jibo uses node-hue-api to alter the color of all lights]*<br /></small>
+
 ### Connect to Philips Hue bridge
 <small>*[Jibo uses node-hue-api to discover it is not connected to the Hue bridge]*<br /></small>
 **Jibo**: Press the button on your Philips Hue bridge and I'll let you know when I'm connected.<br />
 <small>*[Human presses the Philips Hue bridge button]*<br /></small>
 <small>*[Jibo uses node-hue-api to connect to the Hue bridge]*<br /></small>
 **Jibo**: I am connected to your lighting system. How can I help you today?<br />
+
+## Roadmap
+* Support a vast array of light bulb colors, as the physical Hue light bulbs can display millions of different shades. The
+[onecolor](https://www.npmjs.com/package/onecolor) NPM package can assist with this enhancement, as it is able to provide the RGB values for any of the standard named CSS colors.
+* Pro-actively check the capabilities of the Hue lighting system, and gracefully reject color change requests if the bulb doesn't support it (i.e. basic white light bulbs).
+* Allow for the changing of light colors individually, rather than needing to set all light bulbs to the same color. For example, *Jibo, change the living room color to blue*.
+* Add a visual display whenever the state of the light bulb changes. For example, when the light is turned on, then we could temporarily display the light bulb and transition it from off to on.
 
 ## Troubleshooting
 Philips provides a [bridge detection page](https://www.meethue.com/api/nupnp), which will list information about the Hue bridges connected to your network. This page
