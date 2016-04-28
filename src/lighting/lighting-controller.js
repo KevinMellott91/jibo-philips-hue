@@ -332,7 +332,7 @@ class LightingController {
         _self.turnOffLights();
         break;
       case 'color':
-        _self.colorLights(_self.request.color);
+        _self.colorLights();
         break;
       case 'dim':
         _self.dimLights();
@@ -372,9 +372,6 @@ class LightingController {
         _self.request.time = moment().add(5, 'minutes');
         _self.turnOffLights();
         break;
-      case 'color':
-          _self.colorLights(_self.request.color);
-          break;
       default:
         _self.publishMessage('invalidCommand');
         break;
@@ -409,22 +406,24 @@ class LightingController {
   /**
    * Uses the Hue API to change the color of all lights within range.
    */
-  colorLights(xColor) {
+  colorLights() {
     var _self = this;
+    var xColor = _self.request.color;
+    var nHue = 32767; // default: white
 
     switch(xColor){
-      case "red": _self.request.state = Hue.lightState.create().on().hue(0).sat(255); break;
-      case "orange": _self.request.state = Hue.lightState.create().on().hue(5000).sat(255); break;
-      case "yellow": _self.request.state = Hue.lightState.create().on().hue(18000).sat(255); break;
-      case "green": _self.request.state = Hue.lightState.create().on().hue(25500).sat(255); break;
-      case "cyan": _self.request.state = Hue.lightState.create().on().hue(36207).sat(255); break;
-      case "blue": _self.request.state = Hue.lightState.create().on().hue(46920).sat(255); break;
-      case "pink": _self.request.state = Hue.lightState.create().on().hue(56100).sat(255); break;
-      case "indigo": _self.request.state = Hue.lightState.create().on().hue(48500).sat(255); break;
-      case "violet": _self.request.state = Hue.lightState.create().on().hue(46000).sat(255); break;
-      default: _self.request.state = Hue.lightState.create().on().rgb(255,255,255); break; // white
+      case "red": nHue = 0; break;
+      case "orange": nHue = 5000; break;
+      case "yellow": nHue = 18000; break;
+      case "green": nHue = 25500; break;
+      case "cyan": nHue = 36207; break;
+      case "blue": nHue = 46920; break;
+      case "pink": nHue = 56100; break;
+      case "indigo": nHue = 48500; break;
+      case "violet": nHue = 46000; break;
     }
 
+    _self.request.state = Hue.lightState.create().on().hue(nHue).sat(255);
     _self.logger.trace('Setting the lights to color '+xColor);
     _self.changeLightsState();
   }
