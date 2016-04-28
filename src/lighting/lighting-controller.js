@@ -303,6 +303,7 @@ class LightingController {
       action: action,
       time: params.time,
       room: params.room,
+      color: params.color,
       state: {}
     };
 
@@ -329,6 +330,9 @@ class LightingController {
         break;
       case 'off':
         _self.turnOffLights();
+        break;
+      case 'color':
+        _self.colorLights();
         break;
       case 'dim':
         _self.dimLights();
@@ -396,6 +400,31 @@ class LightingController {
     _self.request.state = Hue.lightState.create().off();
 
     _self.logger.trace('Turning off the lights');
+    _self.changeLightsState();
+  }
+
+  /**
+   * Uses the Hue API to change the color of all lights within range.
+   */
+  colorLights() {
+    var _self = this;
+    var xColor = _self.request.color;
+    var nHue = 32767; // default: white
+
+    switch(xColor){
+      case "red": nHue = 0; break;
+      case "orange": nHue = 5000; break;
+      case "yellow": nHue = 18000; break;
+      case "green": nHue = 25500; break;
+      case "cyan": nHue = 36207; break;
+      case "blue": nHue = 46920; break;
+      case "pink": nHue = 56100; break;
+      case "indigo": nHue = 48500; break;
+      case "violet": nHue = 46000; break;
+    }
+
+    _self.request.state = Hue.lightState.create().on().hue(nHue).sat(255);
+    _self.logger.trace('Setting the lights to color '+xColor);
     _self.changeLightsState();
   }
 

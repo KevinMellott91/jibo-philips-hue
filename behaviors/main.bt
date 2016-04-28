@@ -42,6 +42,7 @@
                 "      // Attempt to parse a base command.",
                 "      if (asrResult.NLParse.action) notepad.action = asrResult.NLParse.action;",
                 "      if (asrResult.NLParse.room) notepad.params.room = asrResult.NLParse.room;",
+                "      if (asrResult.NLParse.color) notepad.params.color = asrResult.NLParse.color;",
                 "      if (asrResult.NLParse.schedule) notepad.params.time = asrResult.NLParse.schedule;",
                 "      ",
                 "      // As long as an action was parsed, invoke it.",
