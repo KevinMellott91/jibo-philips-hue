@@ -1,6 +1,6 @@
 TopRule = $* (
     $TurnOn {action = 'on'} |
-    ($Color {action = 'color'} (to) $ColorName {color = ColorName.name}) |
+    ($Color {action = 'color'} ($* to) $ColorName {color = ColorName.name}) |
     $TurnOff {action = 'off'} |
     $Dim {action = 'dim'} |
     $Night {action = 'night'} |
