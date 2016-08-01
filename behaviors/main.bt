@@ -85,7 +85,7 @@
                 "  blackboard.Emitter.on('acknowledgeRequest', function(message){",
                 "    var animPath = './animations/greeting.keys';",
                 "    var texturePath = './';",
-                "    jibo.animate.createAnimationBuilderFromKeysPath(animPath, texturePath, (builder) => {",
+                "    jibo.animate.createAnimationBuilderFromKeysPath(animPath, texturePath, function(builder){",
                 "      builder.play();",
                 "    });",
                 "  });",
