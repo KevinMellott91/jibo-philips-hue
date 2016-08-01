@@ -1,9 +1,14 @@
 body {
     margin: 0px;
     overflow: hidden;
+    background-color: black;
 }
 
 #eye {
     width: 1280px;
     height: 720px;
+}
+
+.background {
+  background-color: black;
 }
